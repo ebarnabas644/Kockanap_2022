@@ -90,12 +90,15 @@ namespace KockaNap2022Mellekfeladat01
 
         public static void CalculatePower(StarSystem system)
         {
-            while (system._starPowers.Count > 2)
+            List<int> values = new List<int>() { 0, 0 };
+            List<int> stars = new List<int>(system._starPowers);
+            
+            while (stars.Count > 2)
             {
                 List<int> _maxs = new List<int>();
-                for (int i = 1; i < system._starPowers.Count - 1; i++)
+                for (int i = 1; i < stars.Count - 1; i++)
                 {
-                    _maxs.Add(system._starPowers[i - 1] * system._starPowers[i + 1]);
+                    _maxs.Add(stars[i - 1] * stars[i + 1]);
                 }
                 //int maxValue = _maxs.Max();
                 int idx = _maxs.IndexOf(_maxs.Max());
@@ -103,15 +106,35 @@ namespace KockaNap2022Mellekfeladat01
                 {
                     for (int i = 0; i < _maxs.Count; i++)
                     {
-                        if (_maxs[i] == _maxs[idx] && system._starPowers[i + 1] < system._starPowers[idx + 1])
+                        if (_maxs[i] == _maxs[idx] && stars[i + 1] < stars[idx + 1])
                         {
                             idx = i;
                         }
                     }
                 }
-                system.maxStarPower += _maxs[idx];
-                system._starPowers.RemoveAt(idx);
+                values[0] += _maxs[idx];
+                stars.RemoveAt(idx);
             }
+
+            stars = new List<int>(system._starPowers);
+
+            while (stars.Count > 2)
+            {
+                List<int> _maxs = new List<int>();
+                for (int i = 1; i < stars.Count - 1; i++)
+                {
+                    _maxs.Add(stars[i - 1] * stars[i + 1]);
+                }
+
+                List<int> sublist = stars.GetRange(1, stars.Count - 2);
+
+                int idx = sublist.IndexOf(sublist.Min());
+
+                values[1] += _maxs[idx];
+                stars.RemoveAt(idx + 1);
+            }
+
+            system.maxStarPower = values.Max();
         }
 
 
