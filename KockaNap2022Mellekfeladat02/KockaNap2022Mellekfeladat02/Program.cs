@@ -13,7 +13,7 @@ namespace KockaNap2022Mellekfeladat02
             List<string> area = GetInput();
 
             Console.WriteLine(Calculate(area));
-            Console.ReadKey();
+            
         }
 
         static int Calculate(List<string> list)
