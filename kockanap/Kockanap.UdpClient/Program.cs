@@ -9,7 +9,7 @@ namespace Kockanap.Client
     {
         static void Main(string[] args)
         {
-            GameAI gameAI = new GameAI();
+            GameAI gameAI = new GameAI(101);
             gameAI.StartAI();
         }
     }
