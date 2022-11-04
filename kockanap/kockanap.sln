@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kockanap.Grpc", "kockanap\Kockanap.Grpc.csproj", "{78E1FD99-B8FD-4005-ACA9-6C6BE9F7B787}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kockanap.Client", "Kockanap.UdpClient\Kockanap.Client.csproj", "{4CD26582-8C3B-4572-8084-468C1F812189}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78E1FD99-B8FD-4005-ACA9-6C6BE9F7B787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78E1FD99-B8FD-4005-ACA9-6C6BE9F7B787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78E1FD99-B8FD-4005-ACA9-6C6BE9F7B787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78E1FD99-B8FD-4005-ACA9-6C6BE9F7B787}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CD26582-8C3B-4572-8084-468C1F812189}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CD26582-8C3B-4572-8084-468C1F812189}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CD26582-8C3B-4572-8084-468C1F812189}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CD26582-8C3B-4572-8084-468C1F812189}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {14DD2215-B624-4283-8FD2-C2A97DD542AD}
+	EndGlobalSection
+EndGlobal

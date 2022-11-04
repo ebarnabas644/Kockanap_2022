@@ -1,0 +1,37 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "NikTS.GrpcService";
+package NikTsService;
+import "google/protobuf/timestamp.proto";
+
+message EmptyMessage {
+}
+message UserMessage {
+	int32 userid = 1;
+	string nickName = 2;
+	string password = 3;
+	string ipAddress = 4;
+	int32 portNumber = 5;
+	int32 red = 6;
+	int32 green = 7;
+	int32 blue = 8;
+}
+message RemoveMessage {
+	string nickName = 1;
+	string password = 2;
+}
+message SuccessMessage {
+	bool isSuccessful = 1;
+	string message = 2;
+}
+message AllUsersMessage {
+	int32 numberOfUsers = 1;
+	repeated UserMessage users = 2;
+	google.protobuf.Timestamp time = 3;
+}
+
+service NikTsService {
+	rpc Regiser (UserMessage) returns (SuccessMessage);
+	rpc Unregister (RemoveMessage) returns (SuccessMessage);
+	rpc GetAllUsers (EmptyMessage) returns (AllUsersMessage);
+}
