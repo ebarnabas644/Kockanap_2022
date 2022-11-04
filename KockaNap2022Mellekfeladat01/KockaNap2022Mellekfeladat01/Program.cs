@@ -21,7 +21,7 @@ namespace KockaNap2022Mellekfeladat01
             File.WriteAllLines("starsystem.out", StarSystem.ToStringAll(starSystems));
 
 
-            Console.ReadKey();
+            
         }
 
         
