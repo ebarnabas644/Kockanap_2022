@@ -47,13 +47,12 @@ namespace KockaNap2022Mellekfeladat02
         static List<string> GetInput()
         {
             List<string> map = new List<string>();
-            string sor = Console.ReadLine();
-            do
+            int length = int.Parse(Console.ReadLine());
+            for (int i = 0; i < length; i++)
             {
+                string sor = Console.ReadLine();
                 map.Add(sor);
-                sor = Console.ReadLine();
-                
-            } while (sor != "");
+            }
 
             return map;
         }
