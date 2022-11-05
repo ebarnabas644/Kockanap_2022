@@ -24,13 +24,14 @@ namespace Kockanap.Client
         private Vector2 target;
         private const int mapHeight = 700;
         private const int mapWidth = 700;
-        private const int borderSize = 50;
+        private const int borderSize = 20;
         private Random rnd = new Random();
         private Base nearestBase;
         private int rotationFiness = 5;
         private int previousEnergy;
         private int chargingCounter = 0;
-
+        private int chargingingFailed = 0;
+        private List<TankInfo> detectedEnemies;
 
         public GameAI(int tankId)
         {
@@ -41,6 +42,7 @@ namespace Kockanap.Client
             tankStatus = new TankStatus();
             TankId = tankId;
             nearestBase = new Base(-1);
+            detectedEnemies = new List<TankInfo>();
         }
 
         private void UpdateGameCache()
@@ -97,6 +99,8 @@ namespace Kockanap.Client
                 case State.FindNewTarget:
                     FindNewTarget();
                     break;
+                case State.Attack:
+
                 default:
                     Exploring();
                     break;
@@ -106,6 +110,7 @@ namespace Kockanap.Client
 
         private void Exploring()
         {
+            chargingingFailed = 0;
             StartEngine();
             if(controlledTank.energy <= 0)
             {
@@ -117,6 +122,45 @@ namespace Kockanap.Client
             }
 
             ScanForBase();
+            if(detectedEnemies.Count > 0)
+            {
+                tankStatus.AIState = State.Attack;
+            }
+        }
+
+        private void Attack()
+        {
+
+        }
+
+        private void ScanForEnemy()
+        {
+            detectedEnemies.Clear();
+            if (mapInfo == null) return;
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if(cell != TankId && cell > 100 && cell < 200)
+                    {
+                        if(x > 0 && y > 0 && y < viewW - 1 && x < viewW - 1)
+                        {
+                            if(!(getXY(x + 1,y) < 100 && getXY(x - 1, y) < 100 && getXY(x, y + 1) < 100 && getXY(x, y-1) < 100))
+                            {
+                                foreach (var item in tankInfos)
+                                {
+                                    if (cell == item.tankId)
+                                    {
+                                        detectedEnemies.Add(item);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void ScanForBase()
@@ -207,11 +251,24 @@ namespace Kockanap.Client
             {
                 StopEngine();
                 StopCannon();
-                if(counter % 500 == 0)
+                if(counter % 200 == 0)
                 {
                     if (previousEnergy == controlledTank.energy)
                     {
+                        chargingingFailed++;
                         tankStatus.AIState = State.BackToBase;
+                    }
+                    else
+                    {
+                        if(chargingingFailed > 0)
+                        {
+                            chargingingFailed--;
+                        }
+                    }
+                    if (chargingingFailed >= 2)
+                    {
+                        mapInfo.Bases.Remove(nearestBase);
+                        chargingingFailed = 0;
                     }
                 }
             }
@@ -295,7 +352,9 @@ namespace Kockanap.Client
             }
             LogNearestBase();
             Console.WriteLine(tankStatus);
-            Console.WriteLine("Previous energy: " + previousEnergy);
+            Console.WriteLine("Previous energy: " + previousEnergy + ", charging failed: "+chargingingFailed);
+            Console.WriteLine("Detected enemies: ");
+            LogDetectedEnemies();
             LogTargetPoint();
             Console.WriteLine("-------------------------------");
             LogTanks();
@@ -316,6 +375,14 @@ namespace Kockanap.Client
             foreach (var item in tankInfos)
             {
                 Console.WriteLine(item + "                  ");
+            }
+        }
+
+        private void LogDetectedEnemies()
+        {
+            foreach (var item in detectedEnemies)
+            {
+                Console.Write(item.tankId +", ");
             }
         }
 
