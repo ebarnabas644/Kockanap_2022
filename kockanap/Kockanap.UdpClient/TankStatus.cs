@@ -10,7 +10,7 @@ namespace Kockanap.Client
     {
         public enum State
         {
-            Charging, BackToBase, Attacking, Flee, Exploring
+            Charging, BackToBase, Attacking, Flee, Exploring, FindNewTarget
         }
 
         public TankStatus()
@@ -31,7 +31,7 @@ namespace Kockanap.Client
             CannonOn = false;
             Rotation = 0;
             HoldingGate = false;
-            AIState = State.Exploring;
+            AIState = State.FindNewTarget;
         }
 
         public override string ToString()

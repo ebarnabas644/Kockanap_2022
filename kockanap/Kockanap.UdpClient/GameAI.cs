@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Kockanap.Client.TankStatus;
+using System.Numerics;
 
 namespace Kockanap.Client
 {
@@ -19,6 +20,11 @@ namespace Kockanap.Client
         const int viewW = sightDist * 2 + 1;
         private TankInfo controlledTank;
         private const int maxEnergy = 20;
+        private Vector2 target;
+        private const int mapHeight = 700;
+        private const int mapWidth = 700;
+        private const int borderSize = 50;
+        private Random rnd = new Random();
 
 
         public GameAI(int tankId)
@@ -78,6 +84,9 @@ namespace Kockanap.Client
                 case State.Exploring:
                     Exploring();
                     break;
+                case State.FindNewTarget:
+                    FindNewTarget();
+                    break;
                 default:
                     Exploring();
                     break;
@@ -91,31 +100,55 @@ namespace Kockanap.Client
 
         private void Exploring()
         {
-            if (controlledTank.X > 500)
-            {
-                if (tankStatus.Rotation != 90)
-                {
-                    RotateTank(90);
-                }
-            }
             StartEngine();
             if(controlledTank.energy <= 0)
             {
                 tankStatus.AIState = State.BackToBase;
             }
+            if (TargetReached())
+            {
+                tankStatus.AIState = State.FindNewTarget;
+            }
+            
+        }
+
+        private void SetExplorationTarget()
+        {
+            target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
+        }
+
+        private bool PointOutOfBounds(Vector2 point)
+        {
+            return point.X < borderSize ||
+                point.X > mapWidth - borderSize ||
+                point.Y < borderSize ||
+                point.Y > mapHeight - borderSize;
         }
 
         private void Charging()
         {
-            if(controlledTank.energy < maxEnergy)
+            if(controlledTank.energy < maxEnergy - 2)
             {
                 StopEngine();
                 StopCannon();
             }
             else
             {
-                tankStatus.AIState = State.Exploring;
+                tankStatus.AIState = State.FindNewTarget;
             }
+        }
+
+        private void FindNewTarget()
+        {
+            SetExplorationTarget();
+            RotateToTarget((int)target.X, (int)target.Y);
+            tankStatus.AIState = State.Exploring;
+        }
+
+        private bool TargetReached()
+        {
+            Vector2 pos = new Vector2(controlledTank.X, controlledTank.Y);
+            return Vector2.DistanceSquared(pos, target) < Math.Pow(10,2);
         }
 
         private void BackToBase()
@@ -153,6 +186,7 @@ namespace Kockanap.Client
             if(controlledTank.campX == controlledTank.X && controlledTank.campY == controlledTank.Y)
             {
                 tankStatus.ResetTank();
+                FindNewTarget();
             }
         }
 
@@ -163,6 +197,7 @@ namespace Kockanap.Client
                 Console.Clear();
             }
             Console.WriteLine(tankStatus);
+            LogTargetPoint();
             Console.WriteLine("-------------------------------");
             LogTanks();
             Console.WriteLine("-------------------------------");
@@ -178,6 +213,11 @@ namespace Kockanap.Client
             {
                 Console.WriteLine(item + "                  ");
             }
+        }
+
+        private void LogTargetPoint()
+        {
+            Console.WriteLine(String.Format("Target: X: {0}, Y: {1}", target.X, target.Y));
         }
 
         private void DrawGameMap()
