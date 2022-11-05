@@ -117,6 +117,35 @@ namespace Kockanap.Client
             }
 
             ScanForBase();
+            ScanForStargate();
+
+        }
+
+        private void ScanForStargate()
+        {
+
+            Vector2 localPlayerPos = new Vector2();
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+
+                    if (cell == 240)
+                    {
+                        localPlayerPos.X = x;
+                        localPlayerPos.Y = y;
+                        Vector2 stargatePos = new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y);
+
+                        if (!mapInfo.Stargates.Contains(stargatePos))
+                        {
+                            mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        }
+                        
+                    }
+                }
+                
+            }
         }
 
         private void ScanForBase()
@@ -190,6 +219,17 @@ namespace Kockanap.Client
 
         private void SetExplorationTarget()
         {
+            if (!tankStatus.HoldingGate)
+            {
+                Vector2 stargateLoc = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                double length = Math.Sqrt(Math.Pow(stargateLoc.X - controlledTank.X, 2) + Math.Pow(stargateLoc.Y - controlledTank.Y, 2));
+                if (length < 200.0f)
+                {
+                    target = stargateLoc;
+                }
+            }
+            
+
             target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
         }
 
@@ -243,6 +283,10 @@ namespace Kockanap.Client
             if (CurrentlyOnBase())
             {
                 tankStatus.AIState = State.Charging;
+            }
+            if (tankStatus.HoldingGate)
+            {
+                DropGate();
             }
         }
 
