@@ -122,6 +122,7 @@ namespace Kockanap.Client
             }
 
             ScanForBase();
+            ScanForStargate();
             if(detectedEnemies.Count > 0)
             {
                 tankStatus.AIState = State.Attack;
@@ -160,8 +161,34 @@ namespace Kockanap.Client
                         }
                     }
                 }
-            }
+
         }
+        }
+
+        private void ScanForStargate()
+        {
+
+            Vector2 localPlayerPos = new Vector2();
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if (cell == 240)
+                    {
+                        localPlayerPos.X = x;
+                        localPlayerPos.Y = y;
+                        Vector2 stargatePos = new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y);
+
+                        if (!mapInfo.Stargates.Contains(stargatePos))
+                        {
+                            mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        }
+                        
+                    }
+                }
+                }
+            }
 
         private void ScanForBase()
         {
@@ -234,6 +261,20 @@ namespace Kockanap.Client
 
         private void SetExplorationTarget()
         {
+            if (!tankStatus.HoldingGate)
+            {
+                if(mapInfo != null)
+                {
+                    Vector2 stargateLoc = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                    double length = Math.Sqrt(Math.Pow(stargateLoc.X - controlledTank.X, 2) + Math.Pow(stargateLoc.Y - controlledTank.Y, 2));
+                    if (length < 200.0f)
+                    {
+                        target = stargateLoc;
+                    }
+                }
+            }
+            
+
             target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
         }
 
@@ -301,6 +342,10 @@ namespace Kockanap.Client
             {
                 tankStatus.AIState = State.Charging;
             }
+            if (tankStatus.HoldingGate)
+            {
+                DropGate();
+            }
         }
 
         private bool CurrentlyOnBase()
@@ -355,6 +400,8 @@ namespace Kockanap.Client
             Console.WriteLine("Previous energy: " + previousEnergy + ", charging failed: "+chargingingFailed);
             Console.WriteLine("Detected enemies: ");
             LogDetectedEnemies();
+            Console.WriteLine("Detected stargates:");
+            LogStargates();
             LogTargetPoint();
             Console.WriteLine("-------------------------------");
             LogTanks();
@@ -363,6 +410,17 @@ namespace Kockanap.Client
             
             DrawGameMap();
             Console.SetCursorPosition(0, 0);
+        }
+
+        private void LogStargates()
+        {
+            if(mapInfo != null)
+            {
+                foreach (var item in mapInfo.Stargates)
+                {
+                    Console.WriteLine(String.Format("X: {0}, Y: {1}", item.X, item.Y));
+                }
+            }
         }
 
         private void LogNearestBase()
