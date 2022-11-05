@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static Kockanap.Client.TankStatus;
@@ -285,6 +286,11 @@ namespace Kockanap.Client
         private void RotateToTarget(int targetX, int targetY)
         {
             int rot = (int)Math.Round(Math.Atan2(targetY - controlledTank.Y, targetX - controlledTank.X) / Math.PI * 180,0);
+            RotateTank(rot);
+        }
+        private void RotateToTarget(Vector2 target)
+        {
+            int rot = (int)Math.Round(Math.Atan2(target.Y - controlledTank.Y, target.X - controlledTank.X) / Math.PI * 180, 0);
             RotateTank(rot);
         }
 
