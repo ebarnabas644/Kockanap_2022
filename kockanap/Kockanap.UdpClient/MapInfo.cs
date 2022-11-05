@@ -13,13 +13,13 @@ namespace Kockanap.Client
 
         public List<Vector2> Stargates { get; set; }
 
-        public List<Vector2> Bases { get; set; }
+        public List<Base> Bases { get; set; }
 
         public MapInfo(byte[] data)
         {
             this.data = data;
             Stargates = new List<Vector2>();
-            Bases = new List<Vector2>();
+            Bases = new List<Base>();
         }
 
         public void ResetMapInfo(byte[] data)
@@ -30,9 +30,8 @@ namespace Kockanap.Client
 
         }
 
-        public Vector2 NearestBase(Vector2 currentPos)
+        public Base NearestBase(Vector2 currentPos)
         {
-            if (Bases.Count == 0) return currentPos;
             if (Bases.Count == 1)
             {
                 return Bases[0];
@@ -42,7 +41,7 @@ namespace Kockanap.Client
             int idx = 0;
             for (int i = 0; i < Bases.Count; i++)
             {
-                double d = Math.Sqrt(Math.Pow(Bases[i].X - currentPos.X, 2) + Math.Pow(Bases[i].Y - currentPos.Y, 2));
+                double d = Math.Sqrt(Math.Pow(Bases[i].BasePoint.X - currentPos.X, 2) + Math.Pow(Bases[i].BasePoint.Y - currentPos.Y, 2));
                 if (maxDistance > d)
                 {
                     maxDistance = d;
@@ -80,9 +79,20 @@ namespace Kockanap.Client
             return Stargates[idx];
         }
 
-        public void AddBase(Vector2 pos)
+        public void AddBase(int id, List<Vector2> pos)
         {
-            Bases.Add(pos);
+
+            foreach (var item in Bases)
+            {
+                if(item.Id == id)
+                {
+                    item.CalculateCenterPoint(pos);
+                    return;
+                }
+            }
+            var newBase = new Base(id);
+            Bases.Add(newBase);
+            newBase.CalculateCenterPoint(pos);
         }
 
         public void AddStargate(Vector2 pos)

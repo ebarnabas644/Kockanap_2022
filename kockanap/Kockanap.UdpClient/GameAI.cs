@@ -26,6 +26,7 @@ namespace Kockanap.Client
         private const int mapWidth = 700;
         private const int borderSize = 50;
         private Random rnd = new Random();
+        private Base nearestBase;
 
 
         public GameAI(int tankId)
@@ -36,6 +37,7 @@ namespace Kockanap.Client
             counter = 0;
             tankStatus = new TankStatus();
             TankId = tankId;
+            nearestBase = new Base(-1);
         }
 
         private void UpdateGameCache()
@@ -110,7 +112,58 @@ namespace Kockanap.Client
             {
                 tankStatus.AIState = State.FindNewTarget;
             }
-            
+
+            ScanForBase();
+        }
+
+        private void ScanForBase()
+        {
+            Dictionary<int, List<Vector2>> tempBases = new Dictionary<int, List<Vector2>>();
+            if (mapInfo == null) return;
+            Vector2 localPlayerPos = new Vector2();
+            bool alreadyFound = false;
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if(cell == TankId)
+                    {
+                        localPlayerPos.X = x;
+                        localPlayerPos.Y = y;
+                        alreadyFound = true;
+                        break;
+                    }
+                }
+                if (alreadyFound)
+                {
+                    break;
+                }
+            }
+
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if (cell < 100)
+                    {
+                        if (!tempBases.ContainsKey(cell))
+                        {
+                            tempBases.Add(cell, new List<Vector2>());
+                            tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        }
+                        else
+                        {
+                            tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        }
+                    }
+                }
+            }
+            foreach (var item in tempBases)
+            {
+                mapInfo.AddBase(item.Key, item.Value);
+            }
         }
 
         private void SetExplorationTarget()
@@ -154,7 +207,8 @@ namespace Kockanap.Client
 
         private void BackToBase()
         {
-            RotateToTarget(controlledTank.campX, controlledTank.campY);
+            nearestBase = mapInfo.NearestBase(new Vector2(controlledTank.X, controlledTank.Y));
+            RotateToTarget(nearestBase.BasePoint);
             StartEngine();
             if (CurrentlyOnBase())
             {
@@ -164,10 +218,10 @@ namespace Kockanap.Client
 
         private bool CurrentlyOnBase()
         {
-            return controlledTank.campX - 8 < controlledTank.X &&
-                controlledTank.campX + 8 > controlledTank.X &&
-                controlledTank.campY - 8 < controlledTank.Y &&
-                controlledTank.campY + 8 > controlledTank.Y;
+            return nearestBase.BasePoint.X - 8 < controlledTank.X &&
+                nearestBase.BasePoint.X + 8 > controlledTank.X &&
+                nearestBase.BasePoint.Y - 8 < controlledTank.Y &&
+               nearestBase.BasePoint.Y + 8 > controlledTank.Y;
         }
 
         private void GetControlledTankInfo()
@@ -241,7 +295,7 @@ namespace Kockanap.Client
                     }
                     else if (cell < 100)
                     {
-                        line += "_ ";
+                        line += (char)(cell+50)+" ";
                     }
                     else if (cell == TankId)
                     {
