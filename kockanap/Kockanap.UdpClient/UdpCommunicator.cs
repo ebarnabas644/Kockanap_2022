@@ -83,7 +83,14 @@ namespace Kockanap.Client
 
         public void GetMapInfo(byte[] receiveBytes)
         {
-            this.mapCache = new MapInfo(receiveBytes);
+            if(this.mapCache == null)
+            {
+                this.mapCache = new MapInfo(receiveBytes);
+            }
+            else
+            {
+                this.mapCache.data = receiveBytes;
+            }
         }
 
         public void GetTankInfos(byte[] receiveBytes)

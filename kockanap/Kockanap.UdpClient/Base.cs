@@ -12,20 +12,23 @@ namespace Kockanap.Client
         public int Id { get; set; }
         public Vector2 BasePoint { get; set; }
 
+        public List<Vector2> points { get; set; }
+
         public Base(int id)
         {
             this.Id = id;
+            points = new List<Vector2>();
         }
 
-        public void CalculateCenterPoint(List<Vector2> list)
+        public void CalculateCenterPoint()
         {
             Vector2 sumVec = new Vector2(0,0);
-            foreach (var item in list)
+            foreach (var item in points)
             {
                 sumVec += item;
             }
 
-            BasePoint = sumVec / list.Count;
+            BasePoint = sumVec / points.Count;
         }
     }
 }

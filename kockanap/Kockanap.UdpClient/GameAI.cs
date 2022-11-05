@@ -27,6 +27,9 @@ namespace Kockanap.Client
         private const int borderSize = 50;
         private Random rnd = new Random();
         private Base nearestBase;
+        private int rotationFiness = 5;
+        private int previousEnergy;
+        private int chargingCounter = 0;
 
 
         public GameAI(int tankId)
@@ -72,6 +75,10 @@ namespace Kockanap.Client
 
         private void Processing()
         {
+            if(counter % 50 == 0)
+            {
+                previousEnergy = controlledTank.energy;
+            }
             switch (tankStatus.AIState)
             {
                 case State.Charging:
@@ -95,10 +102,6 @@ namespace Kockanap.Client
                     break;
             }
             CheckForReset();
-            if(controlledTank.energy <= 0)
-            {
-                RotateToTarget(controlledTank.campX, controlledTank.campY);
-            }
         }
 
         private void Exploring()
@@ -141,29 +144,48 @@ namespace Kockanap.Client
                 }
             }
 
+            var contains = false;
+
             for (int y = 0; y < viewW; y++)
             {
                 for (int x = 0; x < viewW; x++)
                 {
                     byte cell = getXY(x, y);
-                    if (cell < 100)
+                    if (cell < 100 && cell > 0)
                     {
-                        if (!tempBases.ContainsKey(cell))
+                        foreach (var item in mapInfo.Bases)
                         {
-                            tempBases.Add(cell, new List<Vector2>());
-                            tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                            if(item.Id == cell)
+                            {
+                                item.points.Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                                contains = true;
+                                break;
+                            }
                         }
-                        else
+                        if (!contains)
                         {
-                            tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                            Base newBase = new Base(cell);
+                            newBase.points.Add(new Vector2(x, y));
+                            mapInfo.Bases.Add(newBase);
                         }
+                        contains = false;
+                        //if (!tempBases.ContainsKey(cell))
+                        //{
+                        //    tempBases.Add(cell, new List<Vector2>());
+                        //    tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        //}
+                        //else
+                        //{
+                        //    tempBases[cell].Add(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                        //}
                     }
                 }
             }
-            foreach (var item in tempBases)
+            foreach (var item in mapInfo.Bases)
             {
-                mapInfo.AddBase(item.Key, item.Value);
+                item.CalculateCenterPoint();
             }
+            
         }
 
         private void SetExplorationTarget()
@@ -185,6 +207,13 @@ namespace Kockanap.Client
             {
                 StopEngine();
                 StopCannon();
+                if(counter % 500 == 0)
+                {
+                    if (previousEnergy == controlledTank.energy)
+                    {
+                        tankStatus.AIState = State.BackToBase;
+                    }
+                }
             }
             else
             {
@@ -195,6 +224,7 @@ namespace Kockanap.Client
         private void FindNewTarget()
         {
             SetExplorationTarget();
+
             RotateToTarget((int)target.X, (int)target.Y);
             tankStatus.AIState = State.Exploring;
         }
@@ -218,10 +248,21 @@ namespace Kockanap.Client
 
         private bool CurrentlyOnBase()
         {
-            return nearestBase.BasePoint.X - 8 < controlledTank.X &&
-                nearestBase.BasePoint.X + 8 > controlledTank.X &&
-                nearestBase.BasePoint.Y - 8 < controlledTank.Y &&
-               nearestBase.BasePoint.Y + 8 > controlledTank.Y;
+            if(nearestBase.BasePoint.X - 3 < controlledTank.X &&
+                nearestBase.BasePoint.X + 3 > controlledTank.X &&
+                nearestBase.BasePoint.Y - 3 < controlledTank.Y &&
+               nearestBase.BasePoint.Y + 3 > controlledTank.Y)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+            //return nearestBase.BasePoint.X - 1 < controlledTank.X &&
+            //    nearestBase.BasePoint.X + 1 > controlledTank.X &&
+            //    nearestBase.BasePoint.Y - 1 < controlledTank.Y &&
+            //   nearestBase.BasePoint.Y + 1 > controlledTank.Y;
         }
 
         private void GetControlledTankInfo()
@@ -241,6 +282,7 @@ namespace Kockanap.Client
             if(controlledTank.campX == controlledTank.X && controlledTank.campY == controlledTank.Y)
             {
                 tankStatus.ResetTank();
+                mapInfo?.ResetMapInfo();
                 FindNewTarget();
             }
         }
@@ -251,7 +293,9 @@ namespace Kockanap.Client
             {
                 Console.Clear();
             }
+            LogNearestBase();
             Console.WriteLine(tankStatus);
+            Console.WriteLine("Previous energy: " + previousEnergy);
             LogTargetPoint();
             Console.WriteLine("-------------------------------");
             LogTanks();
@@ -260,6 +304,11 @@ namespace Kockanap.Client
             
             DrawGameMap();
             Console.SetCursorPosition(0, 0);
+        }
+
+        private void LogNearestBase()
+        {
+            Console.WriteLine(String.Format("Nearest base: Id: {0}, X: {1}, Y: {2}", nearestBase.Id, nearestBase.BasePoint.X, nearestBase.BasePoint.Y));
         }
 
         private void LogTanks()
