@@ -11,6 +11,12 @@ namespace Kockanap.Client
 {
     internal class GameAI
     {
+        public enum TargetType
+        {
+            Land, Base, Enemy, Stargate
+        }
+
+
         private UdpCommunicator udpCommunicator;
         private MapInfo mapInfo;
         private List<TankInfo> tankInfos;
@@ -32,6 +38,7 @@ namespace Kockanap.Client
         private int chargingCounter = 0;
         private int chargingingFailed = 0;
         private List<TankInfo> detectedEnemies;
+        private TargetType targetType;
 
         public GameAI(int tankId)
         {
@@ -118,6 +125,10 @@ namespace Kockanap.Client
             }
             if (TargetReached())
             {
+                if (!tankStatus.HoldingGate)
+                {
+                    PickupGate();
+                }
                 tankStatus.AIState = State.FindNewTarget;
             }
 
@@ -270,12 +281,16 @@ namespace Kockanap.Client
                     if (length < 200.0f)
                     {
                         target = stargateLoc;
+                        targetType = TargetType.Stargate;
+                        return;
                     }
                 }
             }
             
 
             target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
+            targetType = TargetType.Land;
+
         }
 
         private bool PointOutOfBounds(Vector2 point)
@@ -337,6 +352,7 @@ namespace Kockanap.Client
         {
             nearestBase = mapInfo.NearestBase(new Vector2(controlledTank.X, controlledTank.Y));
             RotateToTarget(nearestBase.BasePoint);
+            targetType = TargetType.Base;
             StartEngine();
             if (CurrentlyOnBase())
             {
