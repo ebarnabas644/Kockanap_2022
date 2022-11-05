@@ -48,6 +48,7 @@ namespace Kockanap.Client
             Y = y;
             this.energy = energy;
             this.shield = shield;
+            history = new List<Vector2>();
         }
 
         public byte PlayerId { get; set; }
@@ -60,7 +61,25 @@ namespace Kockanap.Client
         public byte shield { get; set; }
         public byte carryGate { get; set; }
 
+        public List<Vector2> history { get; set; }
 
+
+        public Vector2 Prediction(Vector2 newPos)
+        {
+            if(history.Count > 3)
+            {
+                history.RemoveAt(0);
+            }
+            history.Add(newPos);
+            if(history.Count == 1)
+            {
+                return newPos;
+            }
+            else
+            {
+                return 2 * history[history.Count - 1] - history[history.Count-2];
+            }
+        }
 
         public override string ToString()
         {

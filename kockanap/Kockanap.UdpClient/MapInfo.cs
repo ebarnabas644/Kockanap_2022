@@ -36,6 +36,10 @@ namespace Kockanap.Client
             if (Bases.Count == 0) return Default;
             if (Bases.Count == 1)
             {
+                if(currentPos.X < 0 || currentPos.X > 700 && currentPos.Y < 0 || currentPos.Y > 700)
+                {
+                    return Default;
+                }
                 return Bases[0];
             }
 
@@ -51,6 +55,10 @@ namespace Kockanap.Client
                 }
             }
 
+            if (currentPos.X < 0 || currentPos.X > 700 && currentPos.Y < 0 || currentPos.Y > 700)
+            {
+                return Default;
+            }
             return Bases[idx];
         }
 

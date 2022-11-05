@@ -30,7 +30,7 @@ namespace Kockanap.Client
         private Vector2 target;
         private const int mapHeight = 700;
         private const int mapWidth = 700;
-        private const int borderSize = 20;
+        private const int borderSize = 60;
         private Random rnd = new Random();
         private Base nearestBase;
         private int rotationFiness = 5;
@@ -213,7 +213,8 @@ namespace Kockanap.Client
             {
                 var enemy = detectedEnemies[0];
                 StopEngine();
-                RotateToTarget(enemy.X, enemy.Y);
+                var prediction = enemy.Prediction(new Vector2(enemy.X, enemy.Y));
+                RotateToTarget(prediction);
                 StartCannon();
             }
             else
@@ -538,7 +539,7 @@ namespace Kockanap.Client
                             chargingingFailed--;
                         }
                     }
-                    if (chargingingFailed >= 2)
+                    if (chargingingFailed >= 3)
                     {
                         mapInfo.Bases.Remove(nearestBase);
                         if(mapInfo.Bases.Count == 0)
@@ -597,10 +598,10 @@ namespace Kockanap.Client
 
         private bool CurrentlyOnBase()
         {
-            if(nearestBase.BasePoint.X - 3 < controlledTank.X &&
-                nearestBase.BasePoint.X + 3 > controlledTank.X &&
-                nearestBase.BasePoint.Y - 3 < controlledTank.Y &&
-               nearestBase.BasePoint.Y + 3 > controlledTank.Y)
+            if(nearestBase.BasePoint.X - 7 < controlledTank.X &&
+                nearestBase.BasePoint.X + 7 > controlledTank.X &&
+                nearestBase.BasePoint.Y - 7 < controlledTank.Y &&
+               nearestBase.BasePoint.Y + 7 > controlledTank.Y)
             {
                 return true;
             }
