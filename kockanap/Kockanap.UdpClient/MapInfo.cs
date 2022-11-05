@@ -11,14 +11,16 @@ namespace Kockanap.Client
     {
         public byte[] data { get; set; }
 
-        public List<Vector2> Stargates { get; set; }
+        public List<Gate> Stargates { get; set; }
 
         public List<Base> Bases { get; set; }
+
+        public Base Default { get; set; }
 
         public MapInfo(byte[] data)
         {
             this.data = data;
-            Stargates = new List<Vector2>();
+            Stargates = new List<Gate>();
             Bases = new List<Base>();
         }
 
@@ -31,7 +33,7 @@ namespace Kockanap.Client
 
         public Base NearestBase(Vector2 currentPos)
         {
-            if (Bases.Count == 0) return new Base(-1);
+            if (Bases.Count == 0) return Default;
             if (Bases.Count == 1)
             {
                 return Bases[0];
@@ -52,12 +54,11 @@ namespace Kockanap.Client
             return Bases[idx];
         }
 
-        public Vector2 NearestStargate(Vector2 currentPos)
+        public Gate NearestStargate(Vector2 currentPos)
         {
-            if (Stargates.Count == 0)
+            if(Stargates.Count == 0)
             {
-                //there is no stargate in the list
-                return currentPos;
+                return null;
             }
             if (Stargates.Count == 1)
             {
@@ -68,7 +69,7 @@ namespace Kockanap.Client
             int idx = 0;
             for (int i = 0; i < Stargates.Count; i++)
             {
-                double d = Math.Sqrt(Math.Pow(Stargates[i].X - currentPos.X, 2) + Math.Pow(Stargates[i].Y - currentPos.Y, 2));
+                double d = Math.Sqrt(Math.Pow(Stargates[i].Pos.X - currentPos.X, 2) + Math.Pow(Stargates[i].Pos.Y - currentPos.Y, 2));
                 if (maxDistance > d)
                 {
                     maxDistance = d;
@@ -97,7 +98,14 @@ namespace Kockanap.Client
 
         public void AddStargate(Vector2 pos)
         {
-            Stargates.Add(pos);
+            foreach (var item in Stargates)
+            {
+                if(Vector2.DistanceSquared(item.Pos, pos) < Math.Pow(10, 2))
+                {
+                    return;
+                }
+            }
+            Stargates.Add(new Gate(pos));
         }
     }
 }

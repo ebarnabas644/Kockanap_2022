@@ -58,6 +58,7 @@ namespace Kockanap.Client
         public int Y { get; set; }
         public byte energy { get; set; }
         public byte shield { get; set; }
+        public byte carryGate { get; set; }
 
 
 

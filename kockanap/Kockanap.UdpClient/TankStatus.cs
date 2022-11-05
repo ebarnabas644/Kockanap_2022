@@ -10,7 +10,7 @@ namespace Kockanap.Client
     {
         public enum State
         {
-            Charging, BackToBase, Attacking, Flee, Exploring, FindNewTarget, Attack
+            Charging, BackToBase, Attacking, Flee, Exploring, FindNewTarget, Attack, RunHome, LocateGate
         }
 
         public TankStatus()

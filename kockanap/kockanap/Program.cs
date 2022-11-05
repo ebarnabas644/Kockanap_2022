@@ -16,10 +16,10 @@ namespace Kockanap.Grpc
                 Green = 172,
                 Red = 15,
                 IpAddress = "10.8.11.162",
-                NickName = "xTest",
+                NickName = "XToDoubt",
                 Userid = 1,
                 PortNumber = 11000,
-                Password = "almafa"
+                Password = "helppls"
             });
             //client.Unregister(new RemoveMessage
             //{

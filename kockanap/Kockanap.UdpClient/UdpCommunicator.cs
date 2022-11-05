@@ -101,14 +101,14 @@ namespace Kockanap.Client
             {
                 try
                 {
-                    var playerid = receiveBytes[6 + i * 12];
-                    var tankid = receiveBytes[7 + i * 12];
-                    var campX = receiveBytes[8 + i * 12] * 256 + receiveBytes[9 + i * 12];
-                    var campY = receiveBytes[10 + i * 12] * 256 + receiveBytes[11 + i * 12];
-                    var X = receiveBytes[12 + i * 12] * 256 + receiveBytes[13 + i * 12];
-                    var Y = receiveBytes[14 + i * 12] * 256 + receiveBytes[15 + i * 12];
-                    var energy = receiveBytes[16 + i * 12];
-                    var shield = receiveBytes[17 + i * 12];
+                    var playerid = receiveBytes[6 + i * 13];
+                    var tankid = receiveBytes[7 + i * 13];
+                    var campX = receiveBytes[8 + i * 13] * 256 + receiveBytes[9 + i * 13];
+                    var campY = receiveBytes[10 + i * 13] * 256 + receiveBytes[11 + i * 13];
+                    var X = receiveBytes[12 + i * 13] * 256 + receiveBytes[13 + i * 13];
+                    var Y = receiveBytes[14 + i * 13] * 256 + receiveBytes[15 + i * 13];
+                    var energy = receiveBytes[16 + i * 13];
+                    var shield = receiveBytes[17 + i * 13];
                     tankInfos.Add(new TankInfo(playerid, tankid, campX, campY, X, Y, energy, shield));
                 }
                 catch

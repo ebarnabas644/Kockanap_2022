@@ -20,6 +20,13 @@ namespace Kockanap.Client
             points = new List<Vector2>();
         }
 
+        public Base(int id, int x, int y)
+        {
+            this.Id = id;
+            this.BasePoint = new Vector2(x, y);
+            points = new List<Vector2>();
+        }
+
         public void CalculateCenterPoint()
         {
             Vector2 sumVec = new Vector2(0,0);
@@ -29,6 +36,9 @@ namespace Kockanap.Client
             }
 
             BasePoint = sumVec / points.Count;
+            var floorX = (int)Math.Floor(BasePoint.X);
+            var floorY = (int)Math.Floor(BasePoint.Y);
+            BasePoint = new Vector2(floorX, floorY);
         }
     }
 }

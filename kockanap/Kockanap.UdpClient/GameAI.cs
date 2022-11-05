@@ -23,10 +23,10 @@ namespace Kockanap.Client
         private int counter;
         private TankStatus tankStatus;
         private int TankId;
-        const int sightDist = 15;
+        const int sightDist = 18;
         const int viewW = sightDist * 2 + 1;
         private TankInfo controlledTank;
-        private const int maxEnergy = 20;
+        private const int maxEnergy = 22;
         private Vector2 target;
         private const int mapHeight = 700;
         private const int mapWidth = 700;
@@ -39,6 +39,10 @@ namespace Kockanap.Client
         private int chargingingFailed = 0;
         private List<TankInfo> detectedEnemies;
         private TargetType targetType;
+        private bool alreadyReseted = false;
+        private int rotCounter = 0;
+        private string changedStateBy = "";
+
 
         public GameAI(int tankId)
         {
@@ -70,8 +74,8 @@ namespace Kockanap.Client
         {
             Console.WriteLine("Start AI:");
             udpCommunicator.Start();
+            ResetState();
             StartEngine();
-            RotateTank(120);
             while (true)
             {
                 UpdateGameCache();
@@ -107,12 +111,24 @@ namespace Kockanap.Client
                     FindNewTarget();
                     break;
                 case State.Attack:
-
+                    Attack();
+                    break;
+                case State.RunHome:
+                    //RunHome();
+                    break;
+                case State.LocateGate:
+                    //LocateGates();
+                    break;
                 default:
-                    Exploring();
+                    //Exploring();
                     break;
             }
             CheckForReset();
+            if (mapInfo?.Bases.Count == 0)
+            {
+                var defaultBase = new Base(controlledTank.PlayerId, controlledTank.campX, controlledTank.campY);
+                mapInfo.Bases.Add(defaultBase);
+            }
         }
 
         private void Exploring()
@@ -121,50 +137,158 @@ namespace Kockanap.Client
             StartEngine();
             if(controlledTank.energy <= 0)
             {
+                changedStateBy = "Exploring no energy, back to base";
                 tankStatus.AIState = State.BackToBase;
             }
-            if (TargetReached())
+            //if(PointOutOfBounds(new Vector2(controlledTank.X, controlledTank.Y)))
+            //{
+            //    RotateTank(tankStatus.Rotation + 180);
+            //}
+            if (mapInfo != null)
             {
-                if (!tankStatus.HoldingGate)
+                //var nearestSg = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                if (TargetReached())
                 {
-                    PickupGate();
+                    //if (nearestSg != null && !nearestSg.isOnBase && !nearestSg.currentlyHold && targetType == TargetType.Stargate)
+                    //{
+                    //    mapInfo.Stargates.Remove(nearestSg);
+                    //    ScanForStargate();
+                    //    nearestSg = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                    //    if(nearestSg != null)
+                    //    {
+                    //        target = nearestSg.Pos;
+                    //        RotateToTarget(target);
+                    //        for (int i = 0; i < 5; i++)
+                    //        {
+                    //            PickupGate(true);
+                    //            nearestSg.currentlyHold = true;
+                    //        }
+                    //        target = nearestBase.BasePoint;
+                    //    }
+                    //}
+                    tankStatus.AIState = State.FindNewTarget;
+                    changedStateBy = "Exploring target reached";
                 }
-                tankStatus.AIState = State.FindNewTarget;
+                //if (nearestSg != null && !nearestSg.isOnBase)
+                //{
+
+                //    if (counter % 100 == 0)
+                //    {
+                //        target = nearestSg.Pos;
+                //        RotateToTarget(target);
+                //    }
+                //}
             }
+           
 
             ScanForBase();
-            ScanForStargate();
-            if(detectedEnemies.Count > 0)
+            //ScanForStargate();
+            ScanForEnemy();
+            //if (controlledTank.shield <= 2)
+            //{
+            //    tankStatus.AIState = State.RunHome;
+            //    return;
+            //}
+            if (detectedEnemies.Count > 0 && controlledTank.energy >= 10 && !CurrentlyOnBase())
             {
                 tankStatus.AIState = State.Attack;
+                changedStateBy = "Attack Begin";
             }
         }
 
         private void Attack()
         {
+            //if (controlledTank.shield <= 2)
+            //{
+            //    tankStatus.AIState = State.RunHome;
+            //    return;
+            //}
+            if (CurrentlyOnBase())
+            {
+                tankStatus.AIState = State.Exploring;
+                changedStateBy = "Attack inside base";
+                return;
+            }
+            if (detectedEnemies.Count > 0 && controlledTank.energy >= 2 && controlledTank.shield > 2)
+            {
+                var enemy = detectedEnemies[0];
+                StopEngine();
+                RotateToTarget(enemy.X, enemy.Y);
+                StartCannon();
+            }
+            else
+            {
+                tankStatus.AIState = State.BackToBase;
+                changedStateBy = "Attack flee to base";
+            }
+        }
 
+        private void RunHome()
+        {
+            var defaultBase = new Base(controlledTank.PlayerId, controlledTank.campX, controlledTank.campY);
+            RotateToTarget(defaultBase.BasePoint);
+            targetType = TargetType.Base;
+            StartEngine();
+            if (CurrentlyOnBase())
+            {
+                tankStatus.AIState = State.Charging;
+                changedStateBy = "Run home charging";
+            }
         }
 
         private void ScanForEnemy()
         {
             detectedEnemies.Clear();
             if (mapInfo == null) return;
+            Vector2 localPlayerPos = new Vector2();
+            bool alreadyFound = false;
             for (int y = 0; y < viewW; y++)
             {
                 for (int x = 0; x < viewW; x++)
                 {
                     byte cell = getXY(x, y);
-                    if(cell != TankId && cell > 100 && cell < 200)
+                    if (cell == TankId)
                     {
-                        if(x > 0 && y > 0 && y < viewW - 1 && x < viewW - 1)
+                        localPlayerPos.X = x;
+                        localPlayerPos.Y = y;
+                        alreadyFound = true;
+                        break;
+                    }
+                }
+                if (alreadyFound)
+                {
+                    break;
+                }
+            }
+
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if (cell != TankId && cell > 100 && cell < 200)
+                    {
+                        if (x > 0 && y > 0 && y < viewW - 1 && x < viewW - 1)
                         {
-                            if(!(getXY(x + 1,y) < 100 && getXY(x - 1, y) < 100 && getXY(x, y + 1) < 100 && getXY(x, y-1) < 100))
+
+                            foreach (var item in tankInfos)
                             {
-                                foreach (var item in tankInfos)
+                                if (cell == item.tankId)
                                 {
-                                    if (cell == item.tankId)
+                                    var newItem = item;
+                                    Vector2 pos = new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y);
+                                    if (!(getXY(x + 1, y) < 100 &&
+                                        getXY(x - 1, y) < 100 &&
+                                        getXY(x, y + 1) < 100 &&
+                                        getXY(x, y - 1) < 100 &&
+                                        getXY(x + 1, y) > 0 &&
+                                        getXY(x - 1, y) > 0 &&
+                                        getXY(x, y + 1) > 0 &&
+                                        getXY(x, y - 1) > 0))
                                     {
-                                        detectedEnemies.Add(item);
+                                        newItem.X = (int)pos.X;
+                                        newItem.Y = (int)pos.Y;
+                                        detectedEnemies.Add(newItem);
                                         break;
                                     }
                                 }
@@ -173,13 +297,87 @@ namespace Kockanap.Client
                     }
                 }
 
-        }
+            }
         }
 
-        private void ScanForStargate()
+        //private void ScanForStargate()
+        //{
+
+        //    Vector2 localPlayerPos = new Vector2();
+        //    bool alreadyFound = false;
+        //    for (int y = 0; y < viewW; y++)
+        //    {
+        //        for (int x = 0; x < viewW; x++)
+        //        {
+        //            byte cell = getXY(x, y);
+        //            if (cell == TankId)
+        //            {
+        //                localPlayerPos.X = x;
+        //                localPlayerPos.Y = y;
+        //                alreadyFound = true;
+        //                break;
+        //            }
+        //        }
+        //        if (alreadyFound)
+        //        {
+        //            break;
+        //        }
+        //    }
+        //    for (int y = 0; y < viewW; y++)
+        //    {
+        //        for (int x = 0; x < viewW; x++)
+        //        {
+        //            byte cell = getXY(x, y);
+        //            if (cell == 240)
+        //            {
+        //                Vector2 stargatePos = new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y);
+        //                tankStatus.AIState = State.LocateGate;
+        //                StopEngine();
+        //                return;
+        //                if (mapInfo.Stargates.Count == 0)
+        //                {
+        //                    mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+        //                }
+        //                else
+        //                {
+        //                    for (int i = 0; i < mapInfo.Stargates.Count; i++)
+        //                    {
+        //                        var knowGate = mapInfo.Stargates[i];
+        //                        if (knowGate.Pos.X != stargatePos.X && knowGate.Pos.Y != stargatePos.Y)
+        //                        {
+        //                            mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+        //                        }
+        //                    }
+        //                }
+
+
+        //            }
+        //        }
+        //    }
+        //}
+
+        private void LocateGates()
         {
-
             Vector2 localPlayerPos = new Vector2();
+            bool alreadyFound = false;
+            for (int y = 0; y < viewW; y++)
+            {
+                for (int x = 0; x < viewW; x++)
+                {
+                    byte cell = getXY(x, y);
+                    if (cell == TankId)
+                    {
+                        localPlayerPos.X = x;
+                        localPlayerPos.Y = y;
+                        alreadyFound = true;
+                        break;
+                    }
+                }
+                if (alreadyFound)
+                {
+                    break;
+                }
+            }
             for (int y = 0; y < viewW; y++)
             {
                 for (int x = 0; x < viewW; x++)
@@ -187,19 +385,28 @@ namespace Kockanap.Client
                     byte cell = getXY(x, y);
                     if (cell == 240)
                     {
-                        localPlayerPos.X = x;
-                        localPlayerPos.Y = y;
                         Vector2 stargatePos = new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y);
-
-                        if (!mapInfo.Stargates.Contains(stargatePos))
+                        if (mapInfo.Stargates.Count == 0)
                         {
                             mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
                         }
-                        
+                        else
+                        {
+                            for (int i = 0; i < mapInfo.Stargates.Count; i++)
+                            {
+                                var knowGate = mapInfo.Stargates[i];
+                                if (knowGate.Pos.X != stargatePos.X && knowGate.Pos.Y != stargatePos.Y)
+                                {
+                                    mapInfo.AddStargate(new Vector2(x, y) - localPlayerPos + new Vector2(controlledTank.X, controlledTank.Y));
+                                }
+                            }
+                        }
+
+
                     }
                 }
-                }
             }
+        }
 
         private void ScanForBase()
         {
@@ -272,24 +479,29 @@ namespace Kockanap.Client
 
         private void SetExplorationTarget()
         {
-            if (!tankStatus.HoldingGate)
+            if (mapInfo != null)
             {
-                if(mapInfo != null)
+                //if(mapInfo.Stargates.Count > 0)
+                //{
+                //    Gate stargateLoc = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                //    double length = Math.Sqrt(Math.Pow(stargateLoc.Pos.X - controlledTank.X, 2) + Math.Pow(stargateLoc.Pos.Y - controlledTank.Y, 2));
+                //    target = stargateLoc.Pos;
+                //    targetType = TargetType.Stargate;
+                //    return;
+                //}
+                //else
+                //{
+                //    target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
+                //    targetType = TargetType.Land;
+                //}
+                if (!alreadyReseted)
                 {
-                    Vector2 stargateLoc = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
-                    double length = Math.Sqrt(Math.Pow(stargateLoc.X - controlledTank.X, 2) + Math.Pow(stargateLoc.Y - controlledTank.Y, 2));
-                    if (length < 200.0f)
-                    {
-                        target = stargateLoc;
-                        targetType = TargetType.Stargate;
-                        return;
-                    }
+                    target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
+                    targetType = TargetType.Land;
+                    alreadyReseted = true;
                 }
             }
-            
-
-            target = new Vector2(rnd.Next(mapHeight - borderSize * 2) + borderSize, rnd.Next(mapWidth - borderSize * 2) + borderSize);
-            targetType = TargetType.Land;
+           
 
         }
 
@@ -303,15 +515,20 @@ namespace Kockanap.Client
 
         private void Charging()
         {
+            alreadyReseted = false;
             if(controlledTank.energy < maxEnergy - 2)
             {
                 StopEngine();
                 StopCannon();
-                if(counter % 200 == 0)
+                if(counter % 150 == 0)
                 {
                     if (previousEnergy == controlledTank.energy)
                     {
                         chargingingFailed++;
+                        mapInfo.Bases.Remove(nearestBase);
+                        ScanForBase();
+                        nearestBase = mapInfo.NearestBase(new Vector2(controlledTank.X, controlledTank.Y));
+                        changedStateBy = "Charging missed base";
                         tankStatus.AIState = State.BackToBase;
                     }
                     else
@@ -324,12 +541,18 @@ namespace Kockanap.Client
                     if (chargingingFailed >= 2)
                     {
                         mapInfo.Bases.Remove(nearestBase);
+                        if(mapInfo.Bases.Count == 0)
+                        {
+                            var defaultBase = new Base(controlledTank.PlayerId, controlledTank.campX, controlledTank.campY);
+                            mapInfo.Bases.Add(defaultBase);
+                        }
                         chargingingFailed = 0;
                     }
                 }
             }
             else
             {
+                changedStateBy = "Charging end find new target";
                 tankStatus.AIState = State.FindNewTarget;
             }
         }
@@ -339,6 +562,7 @@ namespace Kockanap.Client
             SetExplorationTarget();
 
             RotateToTarget((int)target.X, (int)target.Y);
+            changedStateBy = "Exploring after new target found";
             tankStatus.AIState = State.Exploring;
         }
 
@@ -351,16 +575,23 @@ namespace Kockanap.Client
         private void BackToBase()
         {
             nearestBase = mapInfo.NearestBase(new Vector2(controlledTank.X, controlledTank.Y));
-            RotateToTarget(nearestBase.BasePoint);
+            if(counter % 50 == 0)
+            {
+                RotateToTarget(nearestBase.BasePoint);
+            }
             targetType = TargetType.Base;
             StartEngine();
             if (CurrentlyOnBase())
             {
+                changedStateBy = "Back to base charge beginning";
                 tankStatus.AIState = State.Charging;
-            }
-            if (tankStatus.HoldingGate)
-            {
-                DropGate();
+                //DropGate();
+                //var nearestSg = mapInfo.NearestStargate(new Vector2(controlledTank.X, controlledTank.Y));
+                //if(nearestSg != null)
+                //{
+                //    nearestSg.isOnBase = true;
+                //    nearestSg.currentlyHold = false;
+                //}
             }
         }
 
@@ -390,6 +621,11 @@ namespace Kockanap.Client
                 if (item.tankId == TankId)
                 {
                     this.controlledTank = item;
+                    var defaultBase = new Base(controlledTank.PlayerId, controlledTank.campX, controlledTank.campY);
+                    if(mapInfo != null)
+                    {
+                        mapInfo.Default = defaultBase;
+                    }
                     return;
                 }
             }
@@ -413,6 +649,10 @@ namespace Kockanap.Client
             }
             LogNearestBase();
             Console.WriteLine(tankStatus);
+            Console.WriteLine("Status changes by: "+changedStateBy);
+            Console.WriteLine("Rotation calls:" +rotCounter);
+            Console.WriteLine("Currently on base: "+CurrentlyOnBase());
+            Console.WriteLine("Targer type: "+targetType.ToString());
             Console.WriteLine("Previous energy: " + previousEnergy + ", charging failed: "+chargingingFailed);
             Console.WriteLine("Detected enemies: ");
             LogDetectedEnemies();
@@ -432,9 +672,9 @@ namespace Kockanap.Client
         {
             if(mapInfo != null)
             {
-                foreach (var item in mapInfo.Stargates)
+                for (int i = 0; i < mapInfo.Stargates.Count && i < 5; i++)
                 {
-                    Console.WriteLine(String.Format("X: {0}, Y: {1}", item.X, item.Y));
+                    Console.WriteLine(String.Format("X: {0}, Y: {1}", mapInfo.Stargates[i].Pos.X, mapInfo.Stargates[i].Pos.Y));
                 }
             }
         }
@@ -456,7 +696,7 @@ namespace Kockanap.Client
         {
             foreach (var item in detectedEnemies)
             {
-                Console.Write(item.tankId +", ");
+                Console.Write(String.Format("TankId: {0}, X: {1}, Y: {2}",item.tankId, item.X, item.Y));
             }
         }
 
@@ -594,7 +834,15 @@ namespace Kockanap.Client
             {
                 udpCommunicator.Send(String.Format("rot_{0}", degree));
                 tankStatus.Rotation = degree;
+                rotCounter++;
             }
+        }
+
+        private void ResetState()
+        {
+            StopEngine(true);
+            StopCannon(true);
+            RotateTank(0);
         }
     }
 }
